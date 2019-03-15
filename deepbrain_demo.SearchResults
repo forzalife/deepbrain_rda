@@ -1,0 +1,29 @@
+---- play_url Matches (28 in 12 files) ----
+Asr_service.cpp (deepbrain\apps\dcl_service):bool get_tts_play_url(
+Asr_service.h (deepbrain\apps\dcl_service):bool get_tts_play_url(
+Baidu_media_manager.cpp (dueros\src\media-data-manager):MediaPlayerStatus MediaManager::play_url(const char* url, int flags) {
+Baidu_media_manager.h (dueros\src\media-data-manager):    MediaPlayerStatus play_url(const char* url, int flags);
+Baidu_media_manager_adapter.cpp (dueros\src\miniupnp-render\media_player_adapter):void media_play_url(const char* url) {
+Baidu_media_manager_adapter.cpp (dueros\src\miniupnp-render\media_player_adapter):	duer::MediaManager::instance().play_url(url, duer::MEDIA_FLAG_UPNP_URL);
+Baidu_media_manager_adapter.h (dueros\src\miniupnp-render\media_player_adapter):void media_play_url(const char* url);
+Deepbrain_app.cpp (main):bool get_tts_play_url(
+Deepbrain_app.cpp (main):					duer::YTMediaManager::instance().play_url(nlp_result->chat_result.link,flags);
+Deepbrain_app.cpp (main):					bool ret = get_tts_play_url(nlp_result->chat_result.text, (char*)nlp_result->chat_result.link, sizeof(nlp_result->chat_result.link));
+Deepbrain_app.cpp (main):						ret = get_tts_play_url(nlp_result->chat_result.text, (char*)nlp_result->chat_result.link, sizeof(nlp_result->chat_result.link));
+Deepbrain_app.cpp (main):						duer::YTMediaManager::instance().play_url(nlp_result->chat_result.link, flags);
+Deepbrain_app.cpp (main):					bool ret = get_tts_play_url(links->link[0].link_name, links->link[0].name_tts_url, sizeof(links->link[0].name_tts_url));
+Deepbrain_app.cpp (main):						bool ret = get_tts_play_url(links->link[0].link_name, links->link[0].name_tts_url, sizeof(links->link[0].name_tts_url));
+Deepbrain_app.cpp (main):			duer::YTMediaManager::instance().play_url(links->link[0].name_tts_url, duer::MEDIA_FLAG_SPEECH | duer::MEDIA_FLAG_SAVE_PREVIOUS);
+Memo_service.cpp (deepbrain\apps\memo_service):	int ret = get_tts_play_url(tts, tts_url, 1024);
+Memo_service.cpp (deepbrain\apps\memo_service):		ret = get_tts_play_url(tts, tts_url, 1024);
+Memo_service.cpp (deepbrain\apps\memo_service):		duer::YTMediaManager::instance().play_url(tts_url, duer::MEDIA_FLAG_SPEECH | duer::MEDIA_FLAG_SAVE_PREVIOUS);
+Memo_service.cpp (deepbrain\apps\memo_service):		DEBUG_LOGE(LOG_TAG, "memo get_tts_play_url failed");
+Mpush_service.cpp (deepbrain\apps\mpush_service):			bool ret = get_tts_play_url(msg->msg_content, msg->url, sizeof(msg->url));
+Mpush_service.cpp (deepbrain\apps\mpush_service):				ret = get_tts_play_url(msg->msg_content, msg->url,sizeof(msg->url));
+Upnpsoap.c (dueros\src\miniupnp-render):        media_play_url(current_uri_decoded);
+YTManage.cpp (main\yt_src):			duer::YTMediaManager::instance().play_url(url, MEDIA_FLAG_WCHAT);
+YTManage.cpp (main\yt_src):			duer::YTMediaManager::instance().play_url(url, MEDIA_FLAG_DCS_URL);
+YTManage.cpp (main\yt_src):void YTMediaManager::play_url(const char* url, int flags)
+YTManage.cpp (main\yt_src):	LOG("play_url url:%s",url);
+YTManage.cpp (main\yt_src):	MediaManager::instance().play_url(url, flags);
+YTManage.h (main\yt_src):	void play_url(const char* url, int flags);

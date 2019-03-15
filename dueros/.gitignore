@@ -1,0 +1,7 @@
+build
+uv4_log.txt
+TinyDu.uvguix.IoT-CAn
+projects/tools
+projects/TinyDu.uvguix.*
+projects/TinyDu.uvoptx
+projects/build*
