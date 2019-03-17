@@ -20,7 +20,6 @@
 #include "device_params_manage.h"
 
 
-#define ADD_BY_LIJUN 1
 
 
 /* wifi manage status */
@@ -68,9 +67,8 @@ typedef enum WIFI_AP_SERVER_STATUS_t
 int get_wifi_manage_status(void);
 void* get_rda_network_interface(void);
 
-#if ADD_BY_LIJUN
 bool is_wifi_connected();
-#endif
+
 
 /**
  * create wifi manage service

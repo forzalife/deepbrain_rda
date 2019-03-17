@@ -20,6 +20,9 @@
 *******************************************************************/
 #define WIFI_SSID_DEFAULT 		 "TP-LINK_759F"
 #define WIFI_PASSWD_DEFAULT 	 "12345678"
+//#define WIFI_SSID_DEFAULT 		 "CMCC-tayg"
+//#define WIFI_PASSWD_DEFAULT 	 "nscnas3b"
+
 //#define WIFI_PASSWD_DEFAULT 	 "123456789"
 
 

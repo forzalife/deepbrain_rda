@@ -2,7 +2,6 @@
 #define __YT_RECORDER_H__
 
 
-#define ADD_LIJUN_20190308 0
 
 namespace duer {
 	//#define DISABLE_LOCAL_VAD

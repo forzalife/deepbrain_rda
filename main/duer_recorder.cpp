@@ -389,12 +389,7 @@ static void duer_amr_thread_main()
 	char *data = NULL;
 	unsigned int size = 0;
 
-	///add by lijun	20190308
-#if ADD_LIJUN_20190308	
-	while(1)
-	{	
-		duer_amr_thread.signal_wait(0x01);
-#endif		
+		
 	///add by lijun	20190308
 		
 		DUER_LOGI("duer_amr_thread_main start");
@@ -423,19 +418,12 @@ static void duer_amr_thread_main()
 			}
 		}
 
-	#if !ADD_LIJUN_20190308/// if open  this must close	 add by lijun 20190308
 		DUER_LOGI("wait rec_thread delete");
 		while(duer_rec_thread.get_state() != Thread::Deleted);
-	#endif
+
 	
 		duer_recorder_on_stop();
 
-
-	///add by lijun	20190308
-#if ADD_LIJUN_20190308	
-	}
-#endif	
-	///add by lijun	20190308
 
 }
 
@@ -446,13 +434,7 @@ static void duer_rec_thread_main()
     int rs = 0;
 	
 	
-	///add by lijun  20190308
-#if ADD_LIJUN_20190308	
-	while(1)
-	{
-	        duer_rec_thread.signal_wait(0x01);
-#endif
-	///add by lijun	20190308
+
 
 	
 			DUER_LOGI("duer_rec_thread_main start");
@@ -519,11 +501,6 @@ static void duer_rec_thread_main()
 			//duer_recorder_on_stop();
 			_state = DUER_REC_STOPPED;
 
-	///add by lijun	20190308
-#if ADD_LIJUN_20190308	
-	}
-#endif	
-	///add by lijun  20190308
 
 	
 }
@@ -561,28 +538,12 @@ void duer_recorder_start()
 {		
 	DUER_LOGI("duer_recorder_start");
 
-	
 	{
 	_state = DUER_REC_STARTING;	
-	
 	YTMediaManager::instance().rec_start();
-
-	
-	#if !ADD_LIJUN_20190308/// if open  this must close	 add by lijun 20190308
 	duer_amr_thread.start(&duer_amr_thread_main);
 	duer_rec_thread.start(&duer_rec_thread_main);
-	#endif
-	
-
-
-	///add by lijun	20190308
-	#if ADD_LIJUN_20190308
-	duer_amr_thread.signal_set(0x01);
-	duer_rec_thread.signal_set(0x01);
-	#endif
-	
 	}
-	
 }
 
 }

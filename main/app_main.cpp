@@ -108,13 +108,7 @@ void* get_network_interface(void)
     return get_rda_network_interface();
 }
 
-#if ADD_LIJUN_20190308 //add by lijun  20190308
 
-namespace duer
-{
-extern void duer_recorder_init();
-}
-#endif
 
 
 int main() 
@@ -156,7 +150,7 @@ int main()
 	app_main_create(TASK_PRIORITY_1);
 
 	//uart shell
-	//uart_shell_create(TASK_PRIORITY_1);
+	uart_shell_create(TASK_PRIORITY_1);
 
 	//wifi manage
 	wifi_manage_create(TASK_PRIORITY_1);
@@ -182,9 +176,6 @@ int main()
 	//airkiss lan discovery
 	airkiss_lan_discovery_create(TASK_PRIORITY_1);
 
-#if ADD_LIJUN_20190308 //add by lijun  20190308
-	duer::duer_recorder_init();
-#endif	
 
 	DEBUG_LOGI(LOG_TAG, "----entry event_loop----");
     duer::event_loop();

@@ -644,6 +644,9 @@ void YTMediaManager::play_prev()
 		media_bt_backward();
 	//else
 		//dcs_play_prev();
+
+	else
+		play_queue();///// play last
 }
 
 void YTMediaManager::play_next()
@@ -652,6 +655,8 @@ void YTMediaManager::play_next()
 		media_bt_forward();
 	//else
 		//dcs_play_prev();
+	else
+		play_queue();	
 }
 
 void YTMediaManager::start_bt()

@@ -400,7 +400,6 @@ static int get_wifi_info(WIFI_MANAGE_HANDLE_t *handle)
  * @return none
  */
 
-#if ADD_BY_LIJUN
 bool bIsConnectedOnce = false;
 
 bool is_wifi_connected()
@@ -422,10 +421,7 @@ void AirkissTimeOut(void const *argument)
 {
 	DEBUG_LOGI(LOG_TAG, "AirkissTimeOut");	
 	rda5981_stop_airkiss();
-#if 0	
-	nCount ++;
-	if(nCount >nCountTotal)
-#endif		
+	
 	{
 		DEBUG_LOGI(LOG_TAG, "YT_DB_WIFI_AIRKISS_NOT_COMALETE");
 		duer::YTMediaManager::instance().play_data(YT_DB_WIFI_AIRKISS_NOT_COMALETE, sizeof(YT_DB_WIFI_AIRKISS_NOT_COMALETE), duer::MEDIA_FLAG_PROMPT_TONE | duer::MEDIA_FLAG_SAVE_PREVIOUS);
@@ -433,12 +429,6 @@ void AirkissTimeOut(void const *argument)
 		deepbrain::yt_dcl_start();
 		return ;	
 	}
-	
-	//rtAirkissSleep.start(AIRKISS_TIMEOUT_SLEEP);
-	// add  half_aoto_sleep code here	
-#if 0	
-	set_wifi_manage_status(WIFI_MANAGE_STATUS_AIRKISS_ON);
-#endif
 }
 
 rtos::RtosTimer rtAirkiss(AirkissTimeOut,osTimerOnce,NULL);
@@ -447,7 +437,7 @@ namespace deepbrain {
 extern bool is_magic_voice_mode();
 }
 
-#endif
+
 
 
 static void wifi_event_process(WIFI_MANAGE_HANDLE_t *handle)
@@ -513,9 +503,6 @@ static void wifi_event_process(WIFI_MANAGE_HANDLE_t *handle)
 				DEBUG_LOGI(LOG_TAG, "connecting wifi [%s]:[%s] failed", 
 					handle->curr_wifi.wifi_ssid, handle->curr_wifi.wifi_passwd);
 
-#if ADD_BY_LIJUN/// add by lijun
-				//set_wifi_manage_status(WIFI_MANAGE_STATUS_STA_CONNECT_FAIL);
-#endif
 			}
             break;
         }
@@ -536,11 +523,9 @@ static void wifi_event_process(WIFI_MANAGE_HANDLE_t *handle)
 			if(!deepbrain::is_magic_voice_mode())// add
 			duer::YTMediaManager::instance().play_data(YT_DB_WIFI_SUCCESS, sizeof(YT_DB_WIFI_SUCCESS), duer::MEDIA_FLAG_PROMPT_TONE | duer::MEDIA_FLAG_SAVE_PREVIOUS);	
 			handle->connect_index = -1;
-#if ADD_BY_LIJUN
 			DEBUG_LOGI(LOG_TAG, "WIFI_MANAGE_STATUS_STA_CONNECT_SUCCESS");
 			bIsConnectedOnce = true;
-			rtAirkiss.stop();
-#endif			
+			rtAirkiss.stop();		
             break;
         }
 		case WIFI_MANAGE_STATUS_STA_CONNECT_FAIL:
@@ -588,7 +573,6 @@ static void wifi_event_process(WIFI_MANAGE_HANDLE_t *handle)
 
 			memset(&g_wifi_manage_handle->curr_wifi, 0x00, sizeof(DEVICE_WIFI_INFO_T));
 
-#if ADD_BY_LIJUN
 			rtAirkiss.stop();
 			task_thread_sleep(100);
 			DEBUG_LOGI(LOG_TAG, "get_ssid_pw_from_airkiss");
@@ -596,31 +580,23 @@ static void wifi_event_process(WIFI_MANAGE_HANDLE_t *handle)
 
 			deepbrain::RegistWifi();
 			deepbrain::RegistRec();
-#endif			
+			
 			if (get_ssid_pw_from_airkiss(g_wifi_manage_handle->curr_wifi.wifi_ssid,g_wifi_manage_handle->curr_wifi.wifi_passwd) == 0)
 			{				
 				DEBUG_LOGI(LOG_TAG, "start_wifi_airkiss_mode success");	
-#if ADD_BY_LIJUN
 				duer::YTMediaManager::instance().stop();
 				rtAirkiss.stop();
-#endif				
+				
 				set_wifi_manage_status(WIFI_MANAGE_STATUS_AIRKISS_CONNECTING);
 			}
 			else
 			{				
 				DEBUG_LOGE(LOG_TAG, "start_wifi_airkiss_mode failed");
 
-#if ADD_BY_LIJUN
 				rtAirkiss.stop();
 				set_wifi_manage_status(WIFI_MANAGE_STATUS_IDLE);
 				break;
-#endif
-
-#if ADD_BY_LIJUN			
 				set_wifi_manage_status(WIFI_MANAGE_STATUS_IDLE);
-#else
-				set_wifi_manage_status(WIFI_MANAGE_STATUS_STA_ON);
-#endif
 			}
 			
 			break;
@@ -659,10 +635,9 @@ static void wifi_event_process(WIFI_MANAGE_HANDLE_t *handle)
 			save_wifi_info(handle->curr_wifi.wifi_ssid, handle->curr_wifi.wifi_passwd);
 			set_wifi_manage_status(WIFI_MANAGE_STATUS_STA_CONNECTED);
 
-#if ADD_BY_LIJUN
 			bIsConnectedOnce = true;
 			rtAirkiss.stop();
-#endif
+
 			duer::YTMediaManager::instance().play_data(YT_DB_WIFI_SUCCESS, sizeof(YT_DB_WIFI_SUCCESS), duer::MEDIA_FLAG_PROMPT_TONE | duer::MEDIA_FLAG_SAVE_PREVIOUS);	
 			//audio_play_tone_mem(FLASH_MUSIC_NETWORK_CONNECT_SUCCESS, AUDIO_TERM_TYPE_DONE);
             break;

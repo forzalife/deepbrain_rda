@@ -13,6 +13,9 @@
 #define LOG(...) DUER_LOGI(__VA_ARGS__)
 
 AnalogIn ain(ADC_PIN2);
+//// focuse chang to diff     kaifaban
+//AnalogIn ain(ADC_PIN0);
+
 static Thread s_vbat_thread(osPriorityHigh, 1024);
 
 const unsigned int vbat_low_power_alert_times = 5*60*1000; 
