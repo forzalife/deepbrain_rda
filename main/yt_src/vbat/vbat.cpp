@@ -12,9 +12,14 @@
 //#define LOG(_fmt, ...)      printf("[DEVC] ==> %s(%d): "_fmt"\n", __FILE__, __LINE__, ##__VA_ARGS__)
 #define LOG(...) DUER_LOGI(__VA_ARGS__)
 
-AnalogIn ain(ADC_PIN2);
-//// focuse chang to diff     kaifaban
-//AnalogIn ain(ADC_PIN0);
+
+/// 开发板 用这个可能会造成死机
+// other 
+//AnalogIn ain(ADC_PIN2);
+
+
+////kaifaban
+AnalogIn ain(ADC_PIN0);
 
 static Thread s_vbat_thread(osPriorityHigh, 1024);
 

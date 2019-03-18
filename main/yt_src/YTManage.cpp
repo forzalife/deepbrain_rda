@@ -65,6 +65,10 @@ void AirkissTimeOutSleep(void const *argument)
 {
 	DUER_LOGI( "AirkissTimeOutSleep");	
 	// add  aoto_sleep code here	
+
+/// 解决休眠后重复不断的播报 休眠的语音
+	media_play_unregister_listener(&s_mdm_media_listener);
+	
 	duer::YTMediaManager::instance().play_data(YT_SLEEP,sizeof(YT_SLEEP), MEDIA_FLAG_SPEECH|!MEDIA_FLAG_SAVE_PREVIOUS);
 #if 0
 	while(duer::YTMediaManager::instance().get_media_status() != MEDIA_PLAYER_IDLE) 

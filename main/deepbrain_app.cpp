@@ -40,8 +40,8 @@
 
 
 
-#define ZXP_PCBA 0
-#define HB_PCBA 1
+#define ZXP_PCBA 1
+#define HB_PCBA 0
 
 #if ZXP_PCBA
 static duer::YTGpadcKey s_talk_button(KEY_B3);
