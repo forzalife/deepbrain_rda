@@ -125,6 +125,9 @@ int main()
 		"RDA 5981 Wifi Model\r\n"
 		"====================================\r\n");
 
+
+/////// add nothing
+
 	//init global clock
 	init_timer_clock();
 
