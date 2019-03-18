@@ -19,11 +19,9 @@
 
 #include "app_framework.h"
 
-#define ADD_BY_LIJUN_1 1
 
-#if ADD_BY_LIJUN_1
 extern void vbat_sleep();
-#endif
+
 
 namespace deepbrain {
 extern bool is_magic_voice_mode();
@@ -58,7 +56,6 @@ static YTMDMPlayerListener s_mdm_media_listener;
 
 
 
-#if ADD_BY_LIJUN_1
 #define AIRKISS_TIMEOUT_SLEEP 1000*60*10
 
 void AirkissTimeOutSleep(void const *argument)
@@ -119,10 +116,10 @@ void PwmTime(void const *argument)
 		gPwm = gPrePwm;
 	}
 	
-#if 1	
+	
 	s_motor.clock_set(1, 4);
 	s_motor.period_ms(1);
-#if 1
+
 	if(gflags & MEDIA_FLAG_DCS_URL)
 	{
 		if(bRun)/// play
@@ -153,14 +150,14 @@ void PwmTime(void const *argument)
 			gPwm = 1.0;
 		}
 	}
-#endif	
+	
 	s_motor.write(gPwm); 
-#endif
+
 
 }
 rtos::RtosTimer rtPwm(PwmTime,osTimerPeriodic,NULL);
 
-#endif
+
 
 
 int YTMDMPlayerListener::on_start(int flags)
@@ -220,9 +217,8 @@ int YTMDMPlayerListener::on_start(int flags)
 #endif
 
 
-#if ADD_BY_LIJUN_1
 	rtAirkissSleep.stop();
-#endif
+
 
     return 0;
 }
@@ -268,9 +264,8 @@ int YTMDMPlayerListener::on_stop(int flags)
 		//event_trigger(EVT_SHUTDOWN);
 	}
 
-#if ADD_BY_LIJUN_1
 	rtAirkissSleep.start(AIRKISS_TIMEOUT_SLEEP);
-#endif
+
 
     return 0;
 }
@@ -336,9 +331,8 @@ int YTMDMPlayerListener::on_finish(int flags)
 		}
 	}
 
-#if ADD_BY_LIJUN_1
 	rtAirkissSleep.start(AIRKISS_TIMEOUT_SLEEP);
-#endif	
+
 
     return 0;
 }
