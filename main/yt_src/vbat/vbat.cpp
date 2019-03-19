@@ -15,11 +15,11 @@
 
 /// 开发板 用这个可能会造成死机
 // other 
-//AnalogIn ain(ADC_PIN2);
+AnalogIn ain(ADC_PIN2);
 
 
 ////kaifaban
-AnalogIn ain(ADC_PIN0);
+//AnalogIn ain(ADC_PIN0);
 
 static Thread s_vbat_thread(osPriorityHigh, 1024);
 

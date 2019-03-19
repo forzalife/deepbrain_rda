@@ -471,6 +471,8 @@ void YTMediaManager::volume_up_repeat()
 
 void YTMediaManager::volume_up()
 {
+	printf("volume_up\r\n");
+	
 	if(is_bt())
 		media_bt_volup();
 	else

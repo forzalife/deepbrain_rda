@@ -19,8 +19,8 @@
 #define RESET_PIN   PC_6
 #endif
 
-//rda58xx _rda58xx(PB_2, PB_1, PC_9);//zhu xiao pi board
-rda58xx _rda58xx(PD_3, PD_2, PC_9);// kai fa board
+rda58xx _rda58xx(PB_2, PB_1, PC_9);//zhu xiao pi board
+//rda58xx _rda58xx(PD_3, PD_2, PC_9);// kai fa board
 
 namespace duer {
 

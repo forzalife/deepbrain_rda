@@ -40,8 +40,8 @@
 
 
 
-#define ZXP_PCBA 1
-#define HB_PCBA 0
+#define ZXP_PCBA 0
+#define HB_PCBA 1
 
 #if ZXP_PCBA
 static duer::YTGpadcKey s_talk_button(KEY_B3);
@@ -743,11 +743,27 @@ void reset_wifi()
 void voice_up()
 {
 	duer::YTMediaManager::instance().volume_up();
+	if(is_wifi_connected() )	
+	{
+		duer::YTMediaManager::instance().play_data(YT_KEY_TONE,sizeof(YT_KEY_TONE), duer::MEDIA_FLAG_PROMPT_TONE | duer::MEDIA_FLAG_SAVE_PREVIOUS); 	
+	}
+	else
+	{
+	
+	}	
 }
 
 void voice_down()
 {
 	duer::YTMediaManager::instance().volume_down();
+	if(is_wifi_connected() )	
+	{
+		duer::YTMediaManager::instance().play_data(YT_KEY_TONE,sizeof(YT_KEY_TONE), duer::MEDIA_FLAG_PROMPT_TONE | duer::MEDIA_FLAG_SAVE_PREVIOUS); 	
+	}
+	else
+	{
+	
+	}	
 }
 
 void wifi_bt()
@@ -830,9 +846,14 @@ void talk_button_rise_handle()
 }
 
 
+void wifi_button_longpress_handle()
+{
+	duer::event_trigger(duer::EVT_RESET_WIFI);
+}
 
 
-static bool _volume_is_start;
+
+static bool _volume_is_start = false;
 
 
 void play_prev()
@@ -849,7 +870,7 @@ void play_next()
 void volume_up_fall_handle()
 {
 	//duer::event_trigger(duer::EVT_KEY_VOICE_UP);
-	
+	printf("volume_up_fall_handle\r\n");
 	if (_volume_is_start) {
 		duer::event_trigger(duer::EVT_KEY_VOICE_UP);
     }
@@ -866,6 +887,7 @@ void volume_up_fall_handle()
 void volume_down_fall_handle()
 {
 	//duer::event_trigger(duer::EVT_KEY_VOICE_DOWN);
+	printf("volume_down_fall_handle\r\n");
 	if (_volume_is_start) {
 		duer::event_trigger(duer::EVT_KEY_VOICE_DOWN);
     }
@@ -880,11 +902,13 @@ void volume_down_fall_handle()
 
 void volume_up_longpress_handle()
 {
+	printf("volume_up_longpress_handle\r\n");
 	_volume_is_start = true;
 }
 
 void volume_down_longpress_handle()
 {
+	printf("volume_down_longpress_handle\r\n");
 	_volume_is_start = true;
 }
 
@@ -996,13 +1020,14 @@ void yt_dcl_init()
 	s_talk_button.fall(&talk_button_fall_handle);
 	
     s_volume_up_button.rise(&volume_up_fall_handle);
-    s_volume_up_button.longpress(&volume_up_longpress_handle, 1000, duer::YT_LONG_KEY_WITH_RISE);
+    s_volume_up_button.longpress(&volume_up_longpress_handle, 1000, duer::YT_LONG_KEY_ONCE);
 	//s_volume_up_button.fall(&volume_up_fall_handle);
 	//s_volume_down_button.fall(&volume_down_fall_handle);
 	s_volume_down_button.rise(&volume_down_fall_handle);
-    s_volume_down_button.longpress(&volume_down_longpress_handle, 1000, duer::YT_LONG_KEY_WITH_RISE);
+    s_volume_down_button.longpress(&volume_down_longpress_handle, 1000, duer::YT_LONG_KEY_ONCE);
 	
-	s_wifi_bt_button.fall(&wifi_bt_fall_handle);
+	s_wifi_bt_button.rise(&wifi_bt_fall_handle);
+	s_wifi_bt_button.longpress(&wifi_button_longpress_handle, 5000, duer::YT_LONG_KEY_ONCE);
 	s_play_pause_button.fall(&play_pause_fall_handle);
 #endif
 }

@@ -235,7 +235,7 @@ void MediaManager::voice_up_repeat()
 void MediaManager::voice_up()
 {
 	unsigned char s_volume = get_volume();
-	
+	DUER_LOGI("s_volume %d",s_volume);
 #if 1
     if (s_volume < duer::MAX_VOLUME) {
         s_volume = s_volume + UNIT_VOLUME > duer::MAX_VOLUME ?
@@ -263,6 +263,7 @@ void MediaManager::voice_up()
 void MediaManager::voice_down()
 {
 	unsigned char s_volume = get_volume();
+	DUER_LOGI("s_volume %d",s_volume);
     if (s_volume > duer::MIN_VOLUME) {
         s_volume = s_volume - UNIT_VOLUME < duer::MIN_VOLUME ?
                    duer::MIN_VOLUME : s_volume - UNIT_VOLUME;
