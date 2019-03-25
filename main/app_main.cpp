@@ -138,8 +138,12 @@ int main()
 	
     duer::MediaManager::instance().initialize();
 	duer::YTMediaManager::instance().init();
+
+#if 0	
     duer::YTMediaManager::instance().set_volume(duer::DEFAULT_VOLUME);	
-	
+#else
+	duer::YTMediaManager::instance().set_volume(duer::MAX_VOLUME);	
+#endif
 #if 0//chenjl add 20190317
 	if(vbat_check_startup())
 	{
@@ -154,11 +158,19 @@ int main()
 	}
 #endif
 
+#if 0
 	duer::YTMediaManager::instance().play_data(YT_DB_WELCOME, sizeof(YT_DB_WELCOME), duer::MEDIA_FLAG_PROMPT_TONE | duer::MEDIA_FLAG_SAVE_PREVIOUS);	
+#else
+	duer::YTMediaManager::instance().play_data(YT_DB_WELCOME_PHC, sizeof(YT_DB_WELCOME_PHC), duer::MEDIA_FLAG_PROMPT_TONE | duer::MEDIA_FLAG_SAVE_PREVIOUS);		
+#endif
 	while(duer::YTMediaManager::instance().is_playing())//zhutong 20190317		
 	{		
 		wait_ms(50);	
 	}
+
+#if 1
+	duer::YTMediaManager::instance().set_volume(duer::DEFAULT_VOLUME);
+#endif
 		
 	deepbrain::yt_dcl_init();
 

@@ -56,6 +56,13 @@ void duer_qcache_destroy_traverse(duer_qcache_handler cache, duer_qcache_visit_f
 
 void duer_qcache_destroy(duer_qcache_handler cache);
 
+
+void duer_qcache_reset(duer_qcache_handler cache);
+void * duer_qcache_get_next(duer_qcache_handler cache);
+void * duer_qcache_get_pre(duer_qcache_handler cache);
+
+
+
 #ifdef __cplusplus
 }
 #endif

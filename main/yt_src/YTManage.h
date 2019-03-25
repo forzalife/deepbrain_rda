@@ -54,7 +54,8 @@ public:
 	int play_wchat_queue();
 
 	int set_music_queue(const char *url);
-	int play_queue();	
+	int play_queue();
+	int play_queue_v2(int type);
 	int clear_queue();
 	
 	int set_previous_media(const char* url, int flags);

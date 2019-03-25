@@ -34,6 +34,10 @@ namespace duer {
  * use this class to play main url after played front tone url
  */
 static duer_qcache_handler s_music_queue;
+
+static duer_qcache_handler s_music_pre_queue;
+
+
 static duer_mutex_t s_music_queue_lock;
 
 static duer_qcache_handler s_wchat_queue;
@@ -282,8 +286,12 @@ int YTMDMPlayerListener::on_finish(int flags)
 	{
 		event_trigger(EVT_KEY_START_RECORD);
 	}
-	else if (flags & MEDIA_FLAG_SPEECH || flags & MEDIA_FLAG_DCS_URL) {		
+	else if (flags & MEDIA_FLAG_SPEECH || flags & MEDIA_FLAG_DCS_URL) {	
+	#if 0	
 		YTMediaManager::instance().play_queue();
+	#else
+		YTMediaManager::instance().play_queue_v2(1);
+	#endif
 	}
 	else if(flags & MEDIA_FLAG_WCHAT) {
 		YTMediaManager::instance().play_wchat_queue();
@@ -355,6 +363,20 @@ void YTMediaManager::init()
         }
     }
     duer_mutex_unlock(s_music_queue_lock);
+
+////add
+	duer_mutex_lock(s_music_queue_lock);
+    if (!s_music_pre_queue) {
+        s_music_pre_queue = duer_qcache_create();
+        if (!s_music_pre_queue) {
+            DUER_LOGE("Failed to create s_music_queue");
+        }
+    }
+    duer_mutex_unlock(s_music_queue_lock);
+
+	
+
+
 
     if (!s_wchat_queue_lock) {
         s_wchat_queue_lock = duer_mutex_create();
@@ -565,12 +587,24 @@ int YTMediaManager::clear_queue()
 		DUER_FREE(url);
     }
     duer_mutex_unlock(s_music_queue_lock);
+
+////add
+
+	duer_qcache_reset(s_music_queue);
+
+	duer_mutex_lock(s_music_queue_lock);
+	while ((url = (char*)duer_qcache_pop(s_music_pre_queue)) != NULL) {
+		DUER_FREE(url);
+	}
+	duer_mutex_unlock(s_music_queue_lock);
+
+	
 }
 
 int YTMediaManager::play_queue()
 {
     char *url = NULL;
-	//DUER_LOGI("play_queue");
+	DUER_LOGI("play_queue");
 
 	duer_mutex_lock(s_music_queue_lock);
 	if (duer_qcache_length(s_music_queue) > 0) {
@@ -582,6 +616,38 @@ int YTMediaManager::play_queue()
 	}
 	duer_mutex_unlock(s_music_queue_lock);
 }
+
+
+
+int YTMediaManager::play_queue_v2(int type)
+{
+    char *url = NULL;
+	
+	DUER_LOGI("play_pre_queue");
+
+	duer_mutex_lock(s_music_queue_lock);
+	if (duer_qcache_length(s_music_queue) > 0) {
+
+	#if 0	
+		if ((url = (char*)duer_qcache_pop(s_music_pre_queue)) != NULL) {		
+			DUER_LOGI("play_pre_queue[%d]",duer_qcache_length(s_music_pre_queue));
+			duer::YTMediaManager::instance().play_url(url, MEDIA_FLAG_DCS_URL);
+			DUER_FREE(url);
+		}
+	#else
+		if(type)
+			url =  (char*)duer_qcache_get_next(s_music_queue);
+		else
+			url =  (char*)duer_qcache_get_pre(s_music_queue);
+		if(url)
+		duer::YTMediaManager::instance().play_url(url, MEDIA_FLAG_DCS_URL);
+	#endif
+	}
+	duer_mutex_unlock(s_music_queue_lock);	
+}
+
+
+
 
 int YTMediaManager::set_previous_media(const char *url, int flags)
 {	
@@ -646,7 +712,8 @@ void YTMediaManager::play_prev()
 		//dcs_play_prev();
 
 	else
-		play_queue();///// play last
+		//play_pre_queue();///// play last
+		play_queue_v2(0);
 }
 
 void YTMediaManager::play_next()
@@ -656,7 +723,8 @@ void YTMediaManager::play_next()
 	//else
 		//dcs_play_prev();
 	else
-		play_queue();	
+		//play_queue();	
+		play_queue_v2(1);
 }
 
 void YTMediaManager::start_bt()

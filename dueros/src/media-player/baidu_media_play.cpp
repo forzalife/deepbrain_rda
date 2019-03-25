@@ -27,7 +27,7 @@ struct ListenerList {
 
 MediaPlayBuffer* g_media_play_buffer = NULL;
 
-static const uint32_t MEDIA_PLAY_STACK_SIZE = 1024 * 4;
+static const uint32_t MEDIA_PLAY_STACK_SIZE = 1024 * 10;
 static Thread s_media_player_thread(osPriorityAboveNormal, MEDIA_PLAY_STACK_SIZE);
 
 static unsigned char s_volume = 0xff;

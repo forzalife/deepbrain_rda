@@ -179,6 +179,56 @@ void *duer_qcache_pop(duer_qcache_handler cache)
     return rs;
 }
 
+
+duer_qcnode_t *g_cur = NULL;
+
+void duer_qcache_reset(duer_qcache_handler cache)
+{
+	g_cur = NULL;
+}
+
+void * duer_qcache_get_next(duer_qcache_handler cache)
+{
+    duer_qcache_t *p = (duer_qcache_t *)cache;    
+	void *rs = NULL;	
+	if(g_cur == NULL ||p->_tail == g_cur)	
+	{		
+		g_cur = p->_head;	
+	}	
+	else	
+	{		
+		g_cur = g_cur->_next;	
+	}	
+	rs = g_cur->_data;	    
+	return rs;
+
+}
+
+void * duer_qcache_get_pre(duer_qcache_handler cache)
+{
+    duer_qcache_t *p = (duer_qcache_t *)cache;    
+	duer_qcnode_t *q = p->_head;    
+	void *rs = NULL;		
+	if(g_cur == p->_head)	
+	{		
+		g_cur = p->_tail;		
+		rs = g_cur->_data;		
+		return rs;	
+	}	
+	while(q->_next)	
+	{		
+		if(q->_next== g_cur)		
+		{			
+			rs = q->_data;			
+			g_cur = q;			
+			break;		
+		}				
+		q = q->_next;	
+	}    
+	return rs;
+}
+
+
 void duer_qcache_destroy_traverse(duer_qcache_handler cache, duer_qcache_visit_func visit)
 {
     duer_qcache_t *p = (duer_qcache_t *)cache;
