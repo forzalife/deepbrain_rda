@@ -168,7 +168,7 @@ int main()
 		wait_ms(50);	
 	}
 
-#if 1
+#if 0
 	duer::YTMediaManager::instance().set_volume(duer::DEFAULT_VOLUME);
 #endif
 		

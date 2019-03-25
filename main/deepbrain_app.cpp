@@ -50,8 +50,8 @@ static duer::YTGpadcKey s_pig_button(KEY_B2);
 static duer::YTGpadcKey s_magic_button(KEY_B0);
 #elif HB_PCBA
 static duer::YTGpadcKey s_talk_button(KEY_B4);
-static duer::YTGpadcKey s_volume_down_button(KEY_B2);
-static duer::YTGpadcKey s_volume_up_button(KEY_B1);
+static duer::YTGpadcKey s_volume_down_button(KEY_B1);
+static duer::YTGpadcKey s_volume_up_button(KEY_B2);
 static duer::YTGpadcKey s_wifi_bt_button(KEY_B3);
 static duer::YTGpadcKey s_play_pause_button(KEY_B0);
 #endif
