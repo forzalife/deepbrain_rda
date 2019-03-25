@@ -108,6 +108,7 @@ typedef struct MPUSH_SERVICE_HANDLER_t
 	TAILQ_HEAD(MPUSH_MSG_QUEUE_t, MPUSH_MSG_INFO_t) msg_queue;
 }MPUSH_SERVICE_HANDLER_t;
 
+bool mpush_is_connected();
 
 APP_FRAMEWORK_ERRNO_t mpush_service_create(const int task_priority);
 APP_FRAMEWORK_ERRNO_t mpush_service_delete(void);

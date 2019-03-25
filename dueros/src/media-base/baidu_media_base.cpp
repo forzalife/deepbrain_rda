@@ -218,7 +218,7 @@ int MediaBase::start_record(MediaType type) {
 
 size_t MediaBase::read(void* data, size_t size) {
     size_t rs = 0;
-	printf("====>read lock\r\n");
+	//printf("====>read lock\r\n");
     _s_lock.lock(osWaitForever);
     if (_s_status == RECORDING) {
         rs = on_read(data, size);
@@ -227,7 +227,7 @@ size_t MediaBase::read(void* data, size_t size) {
     }
 	
     _s_lock.unlock();	
-	printf("===>unlock\r\n");
+	//printf("===>unlock\r\n");
 	
     return rs;
 }

@@ -60,12 +60,13 @@ static duer::YTGpadcKey s_play_pause_button(KEY_B0);
 
 static int record_sn = 0;		//录音序列号
 static int record_id;		//录音索引
+duer_timer_handler dcl_timeout_timer =  NULL;
 
-static char *wechat_amrnb_data;	//amrnb录音
-static int wechat_amrnb_data_len;	//amrnb录音
+static char *wechat_amrnb_data = NULL;	//amrnb录音
+static int wechat_amrnb_data_len = 0;	//amrnb录音
 
-static char *magic_amrnb_data;	//amrnb录音
-static int magic_amrnb_data_len;	//amrnb录音
+static char *magic_amrnb_data = NULL;	//amrnb录音
+static int magic_amrnb_data_len = 0;	//amrnb录音
 
 static int dcl_mode;
 static int rec_mode;
@@ -324,11 +325,16 @@ void yt_dcl_rec_on_result(ASR_RESULT_t *asr_result)
 		DEBUG_LOGE(LOG_TAG, "ignore record_sn[%d] asr_result!");
 		return;
 	}
-	
+
+	duer_timer_stop(dcl_timeout_timer);
 	yt_dcl_process_result(asr_result);
 }
 
-
+void yt_dcl_rec_on_result_timeout(void *evt)
+{
+	record_sn = 0;	
+	duer::YTMediaManager::instance().play_data(YT_DB_WIFI_LOW_RSSI,sizeof(YT_DB_WIFI_LOW_RSSI),duer::MEDIA_FLAG_PROMPT_TONE | duer::MEDIA_FLAG_SAVE_PREVIOUS);
+}
 
 static bool bFirstWechatRelease = false;
 
@@ -384,22 +390,17 @@ void yt_dcl_rec_on_data(char *data, int size)
 				{					
 					memcpy(magic_amrnb_data + magic_amrnb_data_len, data, size);
 					magic_amrnb_data_len += size;					
-					DEBUG_LOGI(LOG_TAG, "DEEPBRAIN_MODE_WECHAT data size:%d,magic_amrnb_data_len[%d]",size, magic_amrnb_data_len);
+					//DEBUG_LOGI(LOG_TAG, "DEEPBRAIN_MODE_WECHAT data size:%d wechat_data_len:%d",size, amrnb_data_len);
 				}
 			}
 			else
 			{	
 				//DEBUG_LOGE(LOG_TAG, "DEEPBRAIN_MODE_WECHAT stop wechat_data:%x wechat_data_len:%d",amrnb_data,amrnb_data_len);
-				DEBUG_LOGI(LOG_TAG, "DEEPBRAIN_MODE_WECHAT data size:%d,magic_amrnb_data_len[%d]",size, magic_amrnb_data_len);
 				duer::event_trigger(duer::EVT_KEY_STOP_RECORD);
 			}
 			break;
 
 		case DEEPBRAIN_MODE_WECHAT:
-
-			DEBUG_LOGI(LOG_TAG, "wechat_amrnb_data_len: %d",wechat_amrnb_data_len);	
-			DEBUG_LOGI(LOG_TAG, "size: %d",size);
-			
 			if(wechat_amrnb_data && wechat_amrnb_data_len + size < AMR_MAX_AUDIO_SIZE)
 			{
 				if (size > 0)
@@ -412,16 +413,7 @@ void yt_dcl_rec_on_data(char *data, int size)
 			else
 			{	
 				//DEBUG_LOGE(LOG_TAG, "DEEPBRAIN_MODE_WECHAT stop wechat_data:%x wechat_data_len:%d",amrnb_data,amrnb_data_len);
-
-			/// modify 
-				//duer::event_trigger(duer::EVT_KEY_STOP_RECORD);			
-				//duer::event_trigger(duer::EVT_KEY_MCHAT_RELEASE);
-					duer::duer_recorder_stop();	
-					duer::YTMediaManager::instance().rec_stop();
-					//rtos::Thread::wait(100);
-					DEBUG_LOGE(LOG_TAG, "rec_stop  play_data!!");
-					duer::YTMediaManager::instance().play_data(YT_WECHAT_SEND,sizeof(YT_WECHAT_SEND), duer::MEDIA_FLAG_SPEECH); 
-					bFirstWechatRelease = true;
+				duer::event_trigger(duer::EVT_KEY_STOP_RECORD);
 			}
 			break;
 
@@ -478,8 +470,6 @@ void yt_dcl_rec_on_start()
 			break;
 
 	}
-
-	DEBUG_LOGE(LOG_TAG, "yt_dcl_rec_on_start finish!!");
 }
 
 void yt_dcl_rec_on_stop()
@@ -507,7 +497,11 @@ void yt_dcl_rec_on_stop()
 				{
 					asr_service_del_asr_object(asr_obj);
 					asr_obj = NULL;
-					DEBUG_LOGE(LOG_TAG, "asr_service_send_request failed");
+					DEBUG_LOGE(LOG_TAG, "asr_service_send_request failed");					
+					duer::YTMediaManager::instance().play_data(YT_DB_WIFI_LOW_RSSI,sizeof(YT_DB_WIFI_LOW_RSSI),duer::MEDIA_FLAG_PROMPT_TONE | duer::MEDIA_FLAG_SAVE_PREVIOUS);
+				}
+				else {
+					duer_timer_start(dcl_timeout_timer, 5000);
 				}
 			}
 			else
@@ -543,6 +537,8 @@ void yt_dcl_rec_on_stop()
 
 			wechat_amrnb_data = NULL;
 			wechat_amrnb_data_len = 0;
+			
+			duer::YTMediaManager::instance().play_data(YT_WECHAT_SEND,sizeof(YT_WECHAT_SEND), duer::MEDIA_FLAG_SPEECH); 	
 			break;
 			
 		case DEEPBRAIN_MODE_MAGIC_VOICE:
@@ -569,10 +565,6 @@ void stop_recorder()
 	duer::duer_recorder_stop();
 }
 
-bool bKeyPressed = false;
-
-
-
 void talk_start()
 {
 	if(!youngtone_is_authorized())
@@ -595,7 +587,7 @@ void talk_start()
 	else if(!is_wifi_connected() && bIsConnectedOnce)
 	{
 		// 重新配网
-		wifi_manage_start_airkiss();
+		duer::event_trigger(duer::EVT_RESET_WIFI);
 		return ;
 	}
 	else
@@ -610,13 +602,7 @@ void talk_start()
 	duer::duer_recorder_set_vad(true);
 	duer::duer_recorder_set_vad_asr(true);
 
-	bKeyPressed = true;
-	if(bKeyPressed)
-		duer::YTMediaManager::instance().play_data(YT_MCHAT_START,sizeof(YT_MCHAT_START), duer::MEDIA_FLAG_RECORD_TONE);
-	else
-		duer::event_trigger(duer::EVT_KEY_START_RECORD);
-
-	DEBUG_LOGI(LOG_TAG, "bKeyPressed %d",bKeyPressed);
+	duer::YTMediaManager::instance().play_data(YT_MCHAT_START,sizeof(YT_MCHAT_START), duer::MEDIA_FLAG_RECORD_TONE);
 	
 }
 
@@ -633,7 +619,6 @@ void mchat_start()
 		
 	if(duer::duer_recorder_is_busy())
 	{
-	    DEBUG_LOGI(LOG_TAG, "mchat_start");
 		duer::duer_recorder_stop();
 		wait_ms(500);
 		if(duer::duer_recorder_is_busy())
@@ -656,31 +641,30 @@ void mchat_start()
 	
 	duer::duer_recorder_set_vad(false);
 	duer::YTMediaManager::instance().play_data(YT_MCHAT_START,sizeof(YT_MCHAT_START), duer::MEDIA_FLAG_RECORD_TONE); 
-	bFirstWechatRelease = false;
-
 }
 
 void mchat_stop()
 {
     DEBUG_LOGI(LOG_TAG, "mchat_stop");
-	duer::duer_recorder_stop();	
-	duer::YTMediaManager::instance().rec_stop();
-	if(bFirstWechatRelease) return;
-	duer::YTMediaManager::instance().play_data(YT_WECHAT_SEND,sizeof(YT_WECHAT_SEND), duer::MEDIA_FLAG_SPEECH); 	
+	
+	if(duer::duer_recorder_is_busy())
+	{
+		duer::duer_recorder_stop();	
+	} else {
+		wait_ms(500);		
+		duer::duer_recorder_stop();	
+	}
 }
 
 void magic_voice_start()
 {	
 	if(duer::duer_recorder_is_busy())
 	{
-	    DEBUG_LOGI(LOG_TAG, "magic_voice_start");
 		duer::duer_recorder_stop();
 		wait_ms(500);
-
 		if(duer::duer_recorder_is_busy()) {			
 			return;
 		}
-	
 	}
 	dcl_mode = (dcl_mode == DEEPBRAIN_MODE_MAGIC_VOICE)	? DEEPBRAIN_MODE_ASR : DEEPBRAIN_MODE_MAGIC_VOICE;
 
@@ -779,7 +763,6 @@ void play_pause()
 #if ZXP_PCBA
 void talk_button_fall_handle()
 {
-	bKeyPressed = true;
     duer::event_trigger(duer::EVT_KEY_REC_PRESS);
 }
 
@@ -836,7 +819,7 @@ void wifi_button_longpress_handle()
 
 void talk_button_fall_handle()
 {
-	bKeyPressed = true;
+	//bKeyPressed = true;
     duer::event_trigger(duer::EVT_KEY_REC_PRESS);
 }
 
@@ -853,6 +836,8 @@ void wifi_button_longpress_handle()
 
 
 
+// up 0
+// down 1
 static bool _volume_is_start = false;
 
 
@@ -871,6 +856,10 @@ void volume_up_fall_handle()
 {
 	//duer::event_trigger(duer::EVT_KEY_VOICE_UP);
 	printf("volume_up_fall_handle\r\n");
+
+	duer::event_trigger(duer::EVT_KEY_PLAY_PREV);
+	return;
+#if 0	
 	if (_volume_is_start) {
 		duer::event_trigger(duer::EVT_KEY_VOICE_UP);
     }
@@ -881,13 +870,17 @@ void volume_up_fall_handle()
 	}
 
 	_volume_is_start = false;
-	
+#endif	
 }
 
 void volume_down_fall_handle()
 {
 	//duer::event_trigger(duer::EVT_KEY_VOICE_DOWN);
 	printf("volume_down_fall_handle\r\n");
+	duer::event_trigger(duer::EVT_KEY_PLAY_NEXT);
+	return;
+
+#if 0	
 	if (_volume_is_start) {
 		duer::event_trigger(duer::EVT_KEY_VOICE_DOWN);
     }
@@ -897,19 +890,28 @@ void volume_down_fall_handle()
 		duer::event_trigger(duer::EVT_KEY_PLAY_NEXT);
 	}
 	_volume_is_start = false;
+#endif	
 }	
 
 
 void volume_up_longpress_handle()
 {
 	printf("volume_up_longpress_handle\r\n");
-	_volume_is_start = true;
+
+	duer::event_trigger(duer::EVT_KEY_VOICE_UP);
+#if 0	
+		_volume_is_start = true;
+#endif
+
 }
 
 void volume_down_longpress_handle()
 {
 	printf("volume_down_longpress_handle\r\n");
+	duer::event_trigger(duer::EVT_KEY_VOICE_DOWN);
+#if 0	
 	_volume_is_start = true;
+#endif
 }
 
 void play_pause_fall_handle()
@@ -945,6 +947,15 @@ void RegistRec()
 void yt_dcl_start()
 {
 	record_sn = 0;
+	
+	if(!dcl_timeout_timer)
+		dcl_timeout_timer = duer_timer_acquire(yt_dcl_rec_on_result_timeout, NULL, DUER_TIMER_ONCE);	
+
+	if (!dcl_timeout_timer) {
+		DEBUG_LOGE(LOG_TAG,  "fail to creat dcl_timeout_timer"); 
+		return;
+	}
+
 	DEBUG_LOGI(LOG_TAG, "yt_dcl_start");
 #if ZXP_PCBA	
 	duer::event_set_handler(duer::EVT_KEY_REC_PRESS, &talk_start);
@@ -966,6 +977,8 @@ void yt_dcl_start()
 
 void yt_dcl_stop()
 {
+	duer_timer_stop(dcl_timeout_timer);
+	
 	DEBUG_LOGI(LOG_TAG, "yt_dcl_stop");
 #if ZXP_PCBA
 	duer::event_set_handler(duer::EVT_KEY_REC_PRESS, NULL);
@@ -1020,11 +1033,11 @@ void yt_dcl_init()
 	s_talk_button.fall(&talk_button_fall_handle);
 	
     s_volume_up_button.rise(&volume_up_fall_handle);
-    s_volume_up_button.longpress(&volume_up_longpress_handle, 1000, duer::YT_LONG_KEY_ONCE);
+    s_volume_up_button.longpress(&volume_up_longpress_handle, 1000, duer::YT_LONG_KEY_PERIODIC);
 	//s_volume_up_button.fall(&volume_up_fall_handle);
 	//s_volume_down_button.fall(&volume_down_fall_handle);
 	s_volume_down_button.rise(&volume_down_fall_handle);
-    s_volume_down_button.longpress(&volume_down_longpress_handle, 1000, duer::YT_LONG_KEY_ONCE);
+    s_volume_down_button.longpress(&volume_down_longpress_handle, 1000, duer::YT_LONG_KEY_PERIODIC);
 	
 	s_wifi_bt_button.rise(&wifi_bt_fall_handle);
 	s_wifi_bt_button.longpress(&wifi_button_longpress_handle, 5000, duer::YT_LONG_KEY_ONCE);
@@ -1050,15 +1063,18 @@ void yt_key_clear()
 
 void auto_test_key(){	duer::event_trigger(duer::EVT_KEY_FACTORY_KEY);}
 void auto_test_key1(){duer::event_trigger(duer::EVT_KEY_FACTORY1_KEY);}
-void auto_test_key2(){	duer::event_trigger(duer::EVT_KEY_FACTORY2_KEY);}
+void auto_test_key2(){duer::event_trigger(duer::EVT_KEY_FACTORY2_KEY);}
 void auto_test_key3(){duer::event_trigger(duer::EVT_KEY_FACTORY3_KEY);}
-void auto_test_key4(){	duer::event_trigger(duer::EVT_KEY_FACTORY4_KEY);}
-void auto_test_key5(){	duer::event_trigger(duer::EVT_KEY_FACTORY5_KEY);}
+void auto_test_key4(){duer::event_trigger(duer::EVT_KEY_FACTORY4_KEY);}
+void auto_test_key5(){duer::event_trigger(duer::EVT_KEY_FACTORY5_KEY);}
 
 void auto_test_start()
 {
 	DUER_LOGI("auto_test_start");
+	duer::yt_key_init();
+	
 #if ZXP_PCBA	
+	DUER_LOGI("ZXP_PCBA");
 	s_magic_button.fall(&auto_test_key);
 	s_wchat_button.fall(&auto_test_key1);
 	s_pig_button.fall(&auto_test_key2);
@@ -1082,7 +1098,7 @@ int auto_test()
 		yt_key_clear();
 		auto_test_start();
 	}
-
+	
 	return ret;
 }
 //add by lijun	20190311 end

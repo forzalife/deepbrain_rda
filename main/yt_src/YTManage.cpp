@@ -13,7 +13,7 @@
 #include "lightduer_memory.h"
 #include "YTLight.h"
 #include "PwmOut.h"
-
+#include "vbat.h"
 #include "audio.h"
 #include <limits.h>
 
@@ -39,7 +39,12 @@ static duer_mutex_t s_music_queue_lock;
 static duer_qcache_handler s_wchat_queue;
 static duer_mutex_t s_wchat_queue_lock;
 
+
+void PwmTime(void const *argument);
+
 static mbed::PwmOut s_motor(GPIO_PIN22);
+static rtos::RtosTimer rtPwm(PwmTime,osTimerOnce,NULL);
+
 //static mbed::PwmOut *s_motor = NULL;
 //static mbed::DigitalOut GPIO_MOTOR(GPIO_PIN22,1);
 
@@ -55,7 +60,7 @@ public:
 static YTMDMPlayerListener s_mdm_media_listener;
 
 
-
+#if 0
 #define AIRKISS_TIMEOUT_SLEEP 1000*60*10
 
 void AirkissTimeOutSleep(void const *argument)
@@ -82,12 +87,12 @@ void AirkissTimeOutSleep(void const *argument)
 }
 
 rtos::RtosTimer rtAirkissSleep(AirkissTimeOutSleep,osTimerOnce,NULL);
-
+#endif
 
 #define PWM_TIME_PERIODIC 200
 int nTime = 0;
-const int nRunTime = (PWM_TIME_PERIODIC * 5 *3);
-const int nSleepTime = (PWM_TIME_PERIODIC * 5 *6);
+const int nRunTime = (PWM_TIME_PERIODIC * 5 * 6);
+const int nSleepTime = (PWM_TIME_PERIODIC * 5 * 6);
 bool bRun = false;
 bool bRun1 = true;
 int gflags = 0;
@@ -152,17 +157,17 @@ void PwmTime(void const *argument)
 	}
 	
 	s_motor.write(gPwm); 
+	rtPwm.start(PWM_TIME_PERIODIC);
 
 
 }
-rtos::RtosTimer rtPwm(PwmTime,osTimerPeriodic,NULL);
 
 
 
 
 int YTMDMPlayerListener::on_start(int flags)
 {
-#if 1
+
 
 	DUER_LOGI("YTMDMPlayerListener : on_start");
 
@@ -170,54 +175,25 @@ int YTMDMPlayerListener::on_start(int flags)
 
 	gflags = flags;
 	
-	if (flags & MEDIA_FLAG_DCS_URL || flags & MEDIA_FLAG_MAGIC_VOICE) 
+	if (flags & MEDIA_FLAG_DCS_URL ) 
 	{	
-
-#if 1	
-		if(flags & MEDIA_FLAG_DCS_URL)
-		  	gPwm = 0.00f;//0.3	  
-		else if(flags & MEDIA_FLAG_MAGIC_VOICE)
-			gPwm = 0.0f;//0.1
+		gPwm = 0.00f;//0.3	  
 		nTime = 0;
 		nStep = 0;
 		bRun = true;
 		bRun1 = true;
-		rtPwm.start(PWM_TIME_PERIODIC);
-#endif
-		
-#if 1//def YTMOTOR
-		//mbed::PwmOut s_motor(GPIO_PIN22);
-		
-#if 0
-	  gpio_t gpio;
-	  gpio_init(&gpio,GPIO_PIN22);
-	  gpio_dir(&gpio, PIN_OUTPUT);
-	  if(flags & MEDIA_FLAG_DCS_URL)
-	  	gpio_write(&gpio,0);
-	  else if(flags & MEDIA_FLAG_MAGIC_VOICE)
-	  	gpio_write(&gpio,0);
-#endif	  
-
-#if 0
-		GPIO_MOTOR=0;
-#endif
-
-	  
-#if 0
-	  s_motor.clock_set(1, 4);
-	  s_motor.period_ms(1);	  
-	  if(flags & MEDIA_FLAG_DCS_URL)
-	  	s_motor.write(0.10f);//0.3	  
-	  else if(flags & MEDIA_FLAG_MAGIC_VOICE)
-	  	s_motor.write(0);//0.1		 
-#endif
-
-#endif
+		rtPwm.start(2000);
 	}
-#endif
+	else if(flags & MEDIA_FLAG_MAGIC_VOICE) {
+		gPwm = 0.00f;//0.3	  
+		nTime = 0;
+		nStep = 0;
+		bRun = true;
+		bRun1 = true;
+		rtPwm.start(800);
+	}
 
 
-	rtAirkissSleep.stop();
 
 
     return 0;
@@ -264,8 +240,9 @@ int YTMDMPlayerListener::on_stop(int flags)
 		//event_trigger(EVT_SHUTDOWN);
 	}
 
+#if 0//ADD_BY_LIJUN_1
 	rtAirkissSleep.start(AIRKISS_TIMEOUT_SLEEP);
-
+#endif
 
     return 0;
 }
@@ -322,7 +299,7 @@ int YTMDMPlayerListener::on_finish(int flags)
 	}
 	else if(flags & duer::MEDIA_FLAG_NO_POWER_TONE){
 		YTLED::instance().disp_led(LED_SHUTDOWN);
-		event_trigger(EVT_SHUTDOWN);
+		//event_trigger(EVT_SHUTDOWN);
 	}
 	else if(flags & duer::MEDIA_FLAG_PROMPT_TONE){
 		if(flags & duer::MEDIA_FLAG_SAVE_PREVIOUS)
@@ -331,8 +308,9 @@ int YTMDMPlayerListener::on_finish(int flags)
 		}
 	}
 
+#if 0//ADD_BY_LIJUN_1
 	rtAirkissSleep.start(AIRKISS_TIMEOUT_SLEEP);
-
+#endif	
 
     return 0;
 }
@@ -471,8 +449,6 @@ void YTMediaManager::volume_up_repeat()
 
 void YTMediaManager::volume_up()
 {
-	printf("volume_up\r\n");
-	
 	if(is_bt())
 		media_bt_volup();
 	else
@@ -620,21 +596,45 @@ int YTMediaManager::play_previous_media_continue()
 void YTMediaManager::play_url(const char* url, int flags)
 {	
 	LOG("play_url url:%s",url);
+	if(vbat_is_shutdown())
+		return;
+	
+	if(deepbrain::is_magic_voice_mode())
+		return;
+	
 	MediaManager::instance().play_url(url, flags);
 }
 
 void YTMediaManager::play_local(const char* path, int flags) 
 {	
+	if(vbat_is_shutdown())
+		return;
+
+	if(deepbrain::is_magic_voice_mode())
+		return;
+
  	MediaManager::instance().play_local(path,flags);	
 }
 
+void YTMediaManager::play_data(const char* data, size_t size, int flags) {
+	if(vbat_is_shutdown())
+		return;
+	
+	if(deepbrain::is_magic_voice_mode() && !(flags & duer::MEDIA_FLAG_RECORD_TONE))
+		return;
 
-void YTMediaManager::play_data(const char* data, size_t size, int flags) {	
  	MediaManager::instance().play_data(data,size,flags);
 }
 
+void YTMediaManager::play_shutdown(const char* data, size_t size) {
+ 	MediaManager::instance().play_data(data, size, MEDIA_FLAG_NO_POWER_TONE);
+}
+
 void YTMediaManager::play_magic_voice(char* data, size_t size, int flags)	
-{
+{	
+	if(vbat_is_shutdown())
+		return;
+	
 	MediaManager::instance().play_magic_voice(data,size,flags);
 }
 

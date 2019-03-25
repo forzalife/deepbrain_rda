@@ -13,17 +13,7 @@
 #include "amr_codec_cns.h"
 #include "yt_vad_rda_interface.h"
 
-
-namespace deepbrain {
-extern bool is_magic_voice_mode();
-}
-
-
 namespace duer {
-
-/// modify by lijun 20190308
-//static rtos::Thread duer_rec_thread(osPriorityAboveNormal, DEFAULT_STACK_SIZE);
-//static rtos::Thread duer_amr_thread(osPriorityNormal, DEFAULT_STACK_SIZE * 3);
 static rtos::Thread duer_rec_thread(osPriorityAboveNormal, DEFAULT_STACK_SIZE);
 static rtos::Thread duer_amr_thread(osPriorityNormal, DEFAULT_STACK_SIZE * 1);
 
@@ -33,10 +23,6 @@ enum _duer_record_state {
     DUER_REC_STARTING,
     DUER_REC_STARTED,
 };
-
-
-
-
 
 //static char	 flame_data[REC_FRAME_SIZE] = {0};
 static Ringbuff rb(REC_FRAME_SIZE, 4);
@@ -56,10 +42,11 @@ static short pOutFrame[160];
 
 static bool vad_is_start = false;
 static bool vad_is_end = false;
-static int  gAmrDataTotal = 0;
 
 static bool vad_mode = false;
 static bool vad_asr_mode = false;
+
+int nSampleTotal = 0;
 #endif
 
 //static char REC_BUFF_1[REC_FRAME_SIZE * 20] = {0};
@@ -100,129 +87,13 @@ static void duer_recorder_on_start()
 			vad_is_end = false;
 		}
 #endif	
-	DUER_LOGI("yt_dcl_rec_on_start");
+
 	deepbrain::yt_dcl_rec_on_start();
 }
 
-static void duer_recorder_on_data2(char *data, int size)
-{
-	DUER_LOGV("duer_recorder_on_data size:%d", size);	
-
-	short pOutSpeechFrame[200] = {0};
-	unsigned int nOffset,nSampleNumber;
-	
-	unsigned int nHistoryMaxSum,nCurMinSum;
-	int pOutSampleNumber = 0;
-	char charFlag_VAD = 0;
-
-	int nSampleTotal = 0;
-	int i=0;
-	char *p1=0;
-	p1=data;
-	
-	if(vad_mode)
-	{
-		int nReturn = 0;
-		nOffset = 0;		
-		for(i=0;i<20;i++)
-		{
-		   nOffset=0;
-		   nReturn = YT_NB_AMR_DecodeFrame(pDecoderState,p1,32,&nOffset,						  
-										   pOutFrame,&nSampleNumber);
-		   p1=p1+32;
-       
-		   if(nSampleNumber > 0 && !vad_is_end) 
-		   	{
-			   if(!vad_is_start) 
-			   	{
-				   yt_vad_rda_8000_input_data_to_start(pInstance, 
-												   pOutFrame,
-												   nSampleNumber,
-												   pOutSpeechFrame,
-												   &pOutSampleNumber,
-												   &charFlag_VAD);
-		   
-				   if(charFlag_VAD == 'S') 
-				   	{
-				   	   gAmrDataTotal=0;
-					   DUER_LOGI("start vad\n");					   
-					   vad_is_start = true;					   
-				   }
-			   }   		   
-			   if(vad_is_start)
-			   	{
-			   	   gAmrDataTotal++;
-				   yt_vad_rda_8000_input_data_to_end(pInstance, 
-												  pOutFrame,
-												  nSampleNumber,
-												  pOutSpeechFrame,
-												  &pOutSampleNumber,
-												  &nHistoryMaxSum,
-												  (unsigned char*)&charFlag_VAD,
-												  &nCurMinSum,
-												  pOutSpeechFrame);
-				   if(charFlag_VAD == 'Y')
-				   	{    
-					   vad_is_end = true;
-					   gAmrDataTotal=0;
-					   DUER_LOGI("stop vad\n"); 					   
-					   duer_recorder_stop();
-				   }
-				  ///*
-				   ///////////////////////////////////////
-				   else if(gAmrDataTotal == 20*12 && !vad_is_end) 
-				   {
-					   vad_is_end = true;
-					   gAmrDataTotal=0;
-					   DUER_LOGI("nSampleTotal\n"); 					   
-					   duer_recorder_stop();					  
-				   }
-				   //////////////////////////////////////
-				  // */
-			   }
-		   }
-		}           			
-		if(vad_is_start)
-		{
-			deepbrain::yt_dcl_rec_on_data(data, size);
-		}
-	}
-	else
-	{
-		deepbrain::yt_dcl_rec_on_data(data, size);
-	}
-}
-
-
-int nSampleTotal = 0;
-
-#define ADD_BY_CHENJIANLOU 1
-#if ADD_BY_CHENJIANLOU
-#define VAD_END_TIMEOUT 1000*5
-void VadEndTimeOut(void const *argument)
-{
-	if(vad_is_start && !vad_is_end) 
-	{
-		vad_is_end = true;
-		DUER_LOGI("nSampleTotal\n");						
-		duer_recorder_stop();
-		DUER_LOGI("VadEndTimeOut\n");
-	}	
-
-}
-rtos::RtosTimer rtVadEnd(VadEndTimeOut,osTimerOnce,NULL);
-#endif
-
-
-
-
-
 static void duer_recorder_on_data(char *data, int size)
 {
-	DUER_LOGV("duer_recorder_on_data size:%d", size);
-
-
-	
+	DUER_LOGV("duer_recorder_on_data size:%d", size);	
 #ifndef DISABLE_LOCAL_VAD
 	short pOutSpeechFrame[200] = {0};
 	unsigned int nOffset,nSampleNumber;
@@ -248,7 +119,7 @@ static void duer_recorder_on_data(char *data, int size)
 
                  if(!vad_asr_mode)
                  {
-				 	yt_vad_rda_8000_set_mv_mode(pInstance);
+				 	//yt_vad_rda_8000_set_mv_mode(pInstance);
 					//here insert the new vad fun:magic mode///////////////////////
 					yt_vad_rda_8000_input_data_to_start(pInstance, 
 													pOutFrame,
@@ -261,7 +132,7 @@ static void duer_recorder_on_data(char *data, int size)
 				 else
 				 {
                     //here insert the new vad fun:asr mode///////////////////////
-					yt_vad_rda_8000_set_asr_mode(pInstance);
+					//yt_vad_rda_8000_set_asr_mode(pInstance);
 					yt_vad_rda_8000_input_data_to_start(pInstance, 
 													pOutFrame,
 													nSampleNumber,
@@ -274,19 +145,7 @@ static void duer_recorder_on_data(char *data, int size)
 						DUER_LOGI("start vad\n");						
 						vad_is_start = true;
 						
-					    nSampleTotal=0;//cjl add 20190307
-
-
-
-#if 0 //TERENCE---2019/03/11: disable JL's timer						
-					    #if ADD_BY_CHENJIANLOU
-                        rtVadEnd.stop();
-					    rtVadEnd.start(VAD_END_TIMEOUT);
-						DUER_LOGI("rtVadEnd.start\n");
-						#endif
-#endif
-
-						
+					    nSampleTotal = 0;//cjl add 20190307
 					}
 				}	
 				
@@ -296,7 +155,7 @@ static void duer_recorder_on_data(char *data, int size)
 				   {
 					  //nSampleTotal++;//cjl add 20190307
 					  
-					  yt_vad_rda_8000_set_mv_mode(pInstance);
+					  //yt_vad_rda_8000_set_mv_mode(pInstance);
 					  //here insert the new vad fun:magic mode///////////////////////
 					  yt_vad_rda_8000_input_data_to_end(pInstance, 
 												   pOutFrame,
@@ -315,7 +174,7 @@ static void duer_recorder_on_data(char *data, int size)
 				  else
 				  {
 					 //here insert the new vad fun:asr mode///////////////////////
-					 yt_vad_rda_8000_set_asr_mode(pInstance);
+					 //yt_vad_rda_8000_set_asr_mode(pInstance);
 					 yt_vad_rda_8000_input_data_to_end(pInstance, 
 												   pOutFrame,
 												   nSampleNumber,
@@ -379,7 +238,7 @@ static void duer_recorder_on_stop()
 		yt_vad_rda_8000_close_session(pInstance);
 	}
 #endif
-	DUER_LOGI("yt_dcl_rec_on_stop");
+	
 	deepbrain::yt_dcl_rec_on_stop();
 }
 
@@ -388,43 +247,30 @@ static void duer_amr_thread_main()
 	unsigned int nOffset,nSampleNumber;
 	char *data = NULL;
 	unsigned int size = 0;
-
-		
-	///add by lijun	20190308
-		
-		DUER_LOGI("duer_amr_thread_main start");
-		duer_recorder_on_start();
-		
-		DUER_LOGI("_state = %d",_state);
-		while(_state == DUER_REC_STARTED)
-		{
-			rb.get_readPtr(&data);
-
-			if(data) 
-				{
-				duer_recorder_on_data(data, REC_FRAME_SIZE);
-				rb.read_done();
-			}
-		}
-		
-		DUER_LOGI("_state = %d",_state);
-		
-		while(rb.get_remain() > 0)
-		{
-			rb.get_readPtr(&data);
-			if(data) {
-				duer_recorder_on_data(data, REC_FRAME_SIZE);
-				rb.read_done();
-			}
-		}
-
-		DUER_LOGI("wait rec_thread delete");
-		while(duer_rec_thread.get_state() != Thread::Deleted);
-
 	
-		duer_recorder_on_stop();
+	duer_recorder_on_start();
 
+	while(_state == DUER_REC_STARTED)
+	{
+		rb.get_readPtr(&data);
+		if(data) {
+			duer_recorder_on_data(data, REC_FRAME_SIZE);
+			rb.read_done();
+		}
+	}	
 
+	while(rb.get_remain() > 0)
+	{
+		rb.get_readPtr(&data);
+		if(data) {
+			duer_recorder_on_data(data, REC_FRAME_SIZE);
+			rb.read_done();
+		}
+	}
+
+	while(duer_rec_thread.get_state() != Thread::Deleted);
+	
+	duer_recorder_on_stop();
 }
 
 static void duer_rec_thread_main() 
@@ -433,52 +279,42 @@ static void duer_rec_thread_main()
     char* p_cur = NULL;
     int rs = 0;
 	
+	DUER_LOGI("duer_rec_thread_main start");
 	
-
-
+	_state = DUER_REC_STARTED;
+	rb.init();
+	//duer_recorder_on_start();
 	
-			DUER_LOGI("duer_rec_thread_main start");
-			_state = DUER_REC_STARTED;
-			rb.init();
-			//duer_recorder_on_start();
-			
-			//data = flame_data;
+	//data = flame_data;
+	rb.get_writePtr(&data);
+    p_cur = data;
+
+	//memcpy(p_cur, amr_head, strlen(amr_head));
+	//p_cur += strlen(amr_head);
+	
+    while (_state == DUER_REC_STARTED) {
+        if (p_cur == data + REC_FRAME_SIZE) {
+			rb.write_done();			
 			rb.get_writePtr(&data);
-			p_cur = data;
-		
-			//memcpy(p_cur, amr_head, strlen(amr_head));
-			//p_cur += strlen(amr_head);
-			
-			while (_state == DUER_REC_STARTED) 
-				{
-				if (p_cur == data + REC_FRAME_SIZE) {
-					rb.write_done();			
-					rb.get_writePtr(&data);
-					//duer_recorder_on_data(data, p_cur - data);
-					p_cur = data;
-				}
-				size_t size = data + REC_FRAME_SIZE - p_cur;
-				
-				//DUER_LOGI("rec_thread_main size=%d\n",size);
-				
-				rs = YTMediaManager::instance().rec_read_data(p_cur, size);
-				
-				// if value of rs is bigger than size, _plugin is not RECORDING
-				if (rs > size) 
-					{
-						break;
-					}
-				
-				p_cur += rs;
-			}
-			
-			//if (p_cur - data > 0) {
-			//	  duer_recorder_on_data(data, p_cur - data);
-			//}
-		
-		exit:
-			YTMediaManager::instance().rec_stop();
-		
+            //duer_recorder_on_data(data, p_cur - data);
+            p_cur = data;
+        }
+        size_t size = data + REC_FRAME_SIZE - p_cur;
+        rs = YTMediaManager::instance().rec_read_data(p_cur, size);
+        // if value of rs is bigger than size, _plugin is not RECORDING
+        if (rs > size) {
+            break;
+        }
+        p_cur += rs;
+    }
+	
+    //if (p_cur - data > 0) {
+    //    duer_recorder_on_data(data, p_cur - data);
+    //}
+
+exit:
+	YTMediaManager::instance().rec_stop();
+
 #if 0
 			char *writePtr = REC_BUFF_1;
 			char *readPtr = NULL;	
@@ -497,12 +333,9 @@ static void duer_rec_thread_main()
 				writePtr = (writePtr == REC_BUFF_1) ? REC_BUFF_2 : REC_BUFF_1;
 			}
 #endif
-			DUER_LOGI("duer_rec_thread_main stop");
-			//duer_recorder_on_stop();
-			_state = DUER_REC_STOPPED;
 
-
-	
+	//duer_recorder_on_stop();
+	_state = DUER_REC_STOPPED;
 }
 
 void duer_recorder_set_vad(bool need_vad)
@@ -524,26 +357,16 @@ void duer_recorder_stop()
 	DUER_LOGI("duer_recorder_stop");
 }
 
-
-
-//add by lijun 20190308
-void duer_recorder_init()
-{	
-	duer_amr_thread.start(&duer_amr_thread_main);
-	duer_rec_thread.start(&duer_rec_thread_main);
-}
-
-
 void duer_recorder_start()
 {		
 	DUER_LOGI("duer_recorder_start");
 
-	{
 	_state = DUER_REC_STARTING;	
+	
 	YTMediaManager::instance().rec_start();
+	
 	duer_amr_thread.start(&duer_amr_thread_main);
 	duer_rec_thread.start(&duer_rec_thread_main);
-	}
 }
 
 }

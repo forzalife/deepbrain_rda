@@ -10,7 +10,10 @@ enum VBAT_SCENE
     VBAT_SHUTDOWN
 };
 
+bool vbat_is_shutdown();
+
 void vbat_start();
+bool vbat_check_startup();
 
 #endif
 

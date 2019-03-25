@@ -9,6 +9,8 @@
 #include "Rda_sleep_api.h"
 #include "events.h"
 #include "baidu_media_play.h"
+#include "yt_key.h"
+
 //#define LOG(_fmt, ...)      printf("[DEVC] ==> %s(%d): "_fmt"\n", __FILE__, __LINE__, ##__VA_ARGS__)
 #define LOG(...) DUER_LOGI(__VA_ARGS__)
 
@@ -24,8 +26,12 @@ AnalogIn ain(ADC_PIN2);
 static Thread s_vbat_thread(osPriorityHigh, 1024);
 
 const unsigned int vbat_low_power_alert_times = 5*60*1000; 
+const unsigned int low_power_max_cnt = 5; 
 
-static unsigned short get_vbat()
+static bool bVbatRun=true;
+static VBAT_SCENE _vbat_status = VBAT_FULL;
+
+static unsigned short get_vbat_avg()
 {
 	unsigned short _ival[10];
 	unsigned short ival_max = 0;	
@@ -60,7 +66,26 @@ static unsigned short get_vbat()
 	return (unsigned short)(sum / 8);
 }
 
-bool bVbatRun=true;
+bool vbat_check_startup()
+{
+	unsigned short _ival = ain.read_u16();
+	
+	if(_ival < 610)//3.65v
+	{
+		_vbat_status = VBAT_SHUTDOWN;					
+		duer::YTMediaManager::instance().play_shutdown(YT_DB_LOW_BAT,sizeof(YT_DB_LOW_BAT));
+		return true;
+	}
+
+	return false;
+}
+
+bool vbat_is_shutdown()
+{
+	return (_vbat_status == VBAT_SHUTDOWN);
+}
+
+#if 0
 /*static */void vbat_sleep()
 {
 	printf("[vbat]sleep\r\n");
@@ -75,66 +100,127 @@ bool bVbatRun=true;
  #endif
  
 }
+#endif
 
 static void vbat_check()
 {
 	unsigned short _ival;
-    unsigned int   _delay = 5*60*1000;
-	VBAT_SCENE _vbat_status = VBAT_FULL;
+    unsigned int   _delay = 1000*30;
 	unsigned int alert_times = vbat_low_power_alert_times;
+	unsigned int lowPowerCnt = 0;
 
 	while(bVbatRun)
 	{
-		_ival = get_vbat();
-		printf("sys vbat val:%d\r\n",_ival);
-		
-		if(_ival < 605)
+		//static unsigned int   sleep_delay = 0;
+		while(true)
 		{
-			if(_vbat_status < VBAT_NORMAL)
-			{			
-				_delay = 60*1000;
-				_vbat_status = VBAT_NORMAL;			
+			_ival = get_vbat_avg();			
+			LOG("[vbat] ival:%d states:%d",_ival ,_vbat_status);
+#if 1
+			if(_ival < 610)//3.55v
+			{	
+				lowPowerCnt++;
+				if(lowPowerCnt > low_power_max_cnt) {
+					_vbat_status = VBAT_SHUTDOWN;					
+					duer::YTMediaManager::instance().play_shutdown(YT_DB_LOW_BAT,sizeof(YT_DB_LOW_BAT));
+					duer::yt_key_clear();
+				} else {
+					if(_vbat_status < VBAT_LOW_POWER)
+					{			
+						_vbat_status = VBAT_LOW_POWER;
+					}
+					
+					if(alert_times > vbat_low_power_alert_times)
+					{
+						alert_times = 0;
+						duer::YTMediaManager::instance().play_data(YT_DB_LOW_BAT,sizeof(YT_DB_LOW_BAT),duer::MEDIA_FLAG_PROMPT_TONE | duer::MEDIA_FLAG_SAVE_PREVIOUS);
+					}
+					else 
+					{
+						alert_times += _delay;
+					}
+				}
 			}
-		}
-		
-		if(_ival < 585)//3.55v
-		{	
-			if(_vbat_status < VBAT_LOW_POWER)
-			{			
-				_delay = 60*1000;
-				_vbat_status = VBAT_LOW_POWER;
-			}
-		
-			if(_ival >= 575)
+			
+#elif 0		
+			//LOG("vbat ival:%d",ival);
+			printf("vbat val:%d\r\n",_ival);
+			if(_ival < 605+10)
 			{
+				if(_vbat_status < VBAT_NORMAL)
+				{			
+					_vbat_status = VBAT_NORMAL; 		
+				}
+			}
+			
+			if(_ival < 585+10)//3.55v
+			{	
+				if(_vbat_status < VBAT_LOW_POWER)
+				{			
+					_vbat_status = VBAT_LOW_POWER;
+				}
+			
+				if(_ival >= 575+10)
+				{
+					if(alert_times > vbat_low_power_alert_times)
+					{
+						alert_times = 0;
+						duer::YTMediaManager::instance().play_data(YT_DB_LOW_BAT,sizeof(YT_DB_LOW_BAT),duer::MEDIA_FLAG_PROMPT_TONE | duer::MEDIA_FLAG_SAVE_PREVIOUS);
+					}
+					else 
+					{
+						alert_times += _delay;
+					}
+				}
+			}
+			
+			if(_ival < 575+10)//3.5v
+			{
+				if(_vbat_status < VBAT_SHUTDOWN)
+				{			
+					_vbat_status = VBAT_SHUTDOWN;
+				}
+
 				if(alert_times > vbat_low_power_alert_times)
 				{
 					alert_times = 0;
-					duer::YTMediaManager::instance().play_data(YT_DB_LOW_BAT,sizeof(YT_DB_LOW_BAT),duer::MEDIA_FLAG_PROMPT_TONE | duer::MEDIA_FLAG_SAVE_PREVIOUS);
+					duer::YTMediaManager::instance().play_data(YT_DB_LOW_BAT,sizeof(YT_DB_LOW_BAT),duer::MEDIA_FLAG_PROMPT_TONE | duer::MEDIA_FLAG_SAVE_PREVIOUS);				
 				}
 				else 
 				{
 					alert_times += _delay;
 				}
 			}
-		}
-		
-		if(_ival < 575)//3.5v
-		{
-			if(_vbat_status < VBAT_SHUTDOWN)
-			{			
-				duer::YTMediaManager::instance().play_data(YT_DB_LOW_BAT,sizeof(YT_DB_LOW_BAT),duer::MEDIA_FLAG_NO_POWER_TONE);				
-				_vbat_status = VBAT_SHUTDOWN;
+
+#elif 0
+			if(_ival < 610)
+			{
+			    lowPowerCnt += 1;
+				if(lowPowerCnt == 5)
+				{			
+                    
+					duer::YTMediaManager::instance().play_data(YT_DB_LOW_BAT,sizeof(YT_DB_LOW_BAT),duer::MEDIA_FLAG_PROMPT_TONE | duer::MEDIA_FLAG_SAVE_PREVIOUS);				
+	                deepbrain::yt_key_clear();				
+				}
+                if(lowPowerCnt == 6)
+                {
+                    lowPowerCnt=5;
+                }				
 			}
+#endif
+
+			//sleep_delay = duer::YTMediaManager::instance().is_playing() ? 0 : sleep_delay + delay;
+			//if(sleep_delay > SLEEP_DELAY_MAX)
+			//	duer::YTMediaManager::instance().play_data(YT_DB_LOW_BAT,sizeof(YT_DB_LOW_BAT),duer::MEDIA_FLAG_PROMPT_TONE | duer::MEDIA_FLAG_SAVE_PREVIOUS);				
+			
+			Thread::wait(_delay);
 		}
-		
-		Thread::wait(_delay);
 	}
 }
 
 void vbat_start()
 {	
-	duer::event_set_handler(duer::EVT_SHUTDOWN, vbat_sleep);
+	//duer::event_set_handler(duer::EVT_SHUTDOWN, vbat_sleep);
 	s_vbat_thread.start(vbat_check);
 }
 

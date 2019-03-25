@@ -433,10 +433,6 @@ void AirkissTimeOut(void const *argument)
 
 rtos::RtosTimer rtAirkiss(AirkissTimeOut,osTimerOnce,NULL);
 
-namespace deepbrain {
-extern bool is_magic_voice_mode();
-}
-
 
 
 
@@ -457,17 +453,10 @@ static void wifi_event_process(WIFI_MANAGE_HANDLE_t *handle)
 		case WIFI_MANAGE_STATUS_STA_ON:
 		{					
 			//audio_play_tone_mem(FLASH_MUSIC_NETWORK_CONNECTING, AUDIO_TERM_TYPE_DONE);
-		#if 0
-			duer::YTMediaManager::instance().play_data(YT_DB_WIFI_CONNECTING, sizeof(YT_DB_WIFI_CONNECTING), duer::MEDIA_FLAG_PROMPT_TONE);			
-			task_thread_sleep(3000);
-		#endif	
 			if (start_wifi_sta_mode())
 			{
 				DEBUG_LOGI(LOG_TAG, "start wifi sta mode success");
 				set_wifi_manage_status(WIFI_MANAGE_STATUS_STA_CONNECTING);
-
-				duer::YTMediaManager::instance().play_data(YT_DB_WIFI_CONNECTING_TONE, sizeof(YT_DB_WIFI_CONNECTING_TONE), duer::MEDIA_FLAG_PROMPT_TONE);	
-
 				handle->connect_index = -1;
 			}
 			else
@@ -480,9 +469,6 @@ static void wifi_event_process(WIFI_MANAGE_HANDLE_t *handle)
         case WIFI_MANAGE_STATUS_STA_CONNECTING:
         {		
 			//没有wifi信息，则获取wifi配置信息
-
-			if(deepbrain::is_magic_voice_mode())break;
-			
 			if (get_wifi_info(handle) == WIFI_MANAGE_ERRNO_FAIL)
 			{
 				set_wifi_manage_status(WIFI_MANAGE_STATUS_AIRKISS_ON);
@@ -502,7 +488,6 @@ static void wifi_event_process(WIFI_MANAGE_HANDLE_t *handle)
 			{	
 				DEBUG_LOGI(LOG_TAG, "connecting wifi [%s]:[%s] failed", 
 					handle->curr_wifi.wifi_ssid, handle->curr_wifi.wifi_passwd);
-
 			}
             break;
         }
@@ -520,7 +505,6 @@ static void wifi_event_process(WIFI_MANAGE_HANDLE_t *handle)
 			save_wifi_info(handle->curr_wifi.wifi_ssid, handle->curr_wifi.wifi_passwd);
 			set_wifi_manage_status(WIFI_MANAGE_STATUS_STA_CONNECTED);
 			//audio_play_tone_mem(FLASH_MUSIC_NETWORK_CONNECT_SUCCESS, AUDIO_TERM_TYPE_DONE);
-			if(!deepbrain::is_magic_voice_mode())// add
 			duer::YTMediaManager::instance().play_data(YT_DB_WIFI_SUCCESS, sizeof(YT_DB_WIFI_SUCCESS), duer::MEDIA_FLAG_PROMPT_TONE | duer::MEDIA_FLAG_SAVE_PREVIOUS);	
 			handle->connect_index = -1;
 			DEBUG_LOGI(LOG_TAG, "WIFI_MANAGE_STATUS_STA_CONNECT_SUCCESS");
@@ -539,12 +523,27 @@ static void wifi_event_process(WIFI_MANAGE_HANDLE_t *handle)
 			break;
 		}
 		case WIFI_MANAGE_STATUS_STA_CONNECTED:
-		{
+		{				
+			unsigned int msg;
+			rda_msg_get(handle->wifi_msg_queue, &msg, 100);
+			switch(msg)
+			{
+				case MAIN_RECONNECT:
+					DEBUG_LOGI(LOG_TAG, "rda_msg_get reconnect");
+					g_wifi_manage_handle->wifi_handler->disconnect();
+					set_wifi_manage_status(WIFI_MANAGE_STATUS_STA_DISCONNECTED);
+					break;
+			
+				default:
+					//printf("unknown msg\r\n");
+					break;
+			}
 			break;
 		}
 		case WIFI_MANAGE_STATUS_STA_DISCONNECTED:
 		{
-			duer::YTMediaManager::instance().play_data(YT_DB_WIFI_DISCONNECT, sizeof(YT_DB_WIFI_DISCONNECT), duer::MEDIA_FLAG_PROMPT_TONE | duer::MEDIA_FLAG_SAVE_PREVIOUS);	
+			duer::YTMediaManager::instance().play_data(YT_DB_WIFI_DISCONNECT, sizeof(YT_DB_WIFI_DISCONNECT), duer::MEDIA_FLAG_PROMPT_TONE | duer::MEDIA_FLAG_SAVE_PREVIOUS);				
+			task_thread_sleep(3000);
 			//audio_play_tone_mem(FLASH_MUSIC_NETWORK_DISCONNECTED, AUDIO_TERM_TYPE_NOW);
 			set_wifi_manage_status(WIFI_MANAGE_STATUS_STA_ON);
 			break;
@@ -563,11 +562,6 @@ static void wifi_event_process(WIFI_MANAGE_HANDLE_t *handle)
 			g_wifi_manage_handle->wifi_handler->disconnect();
 			app_send_message(APP_NAME_WIFI_MANAGE, APP_MSG_TO_ALL, APP_EVENT_WIFI_DISCONNECTED, NULL, 0);	
 
-			if(deepbrain::is_magic_voice_mode())
-			{
-				DEBUG_LOGI(LOG_TAG, "WIFI_MANAGE_STATUS_AIRKISS_ON && is_magic_voice_mode so exit");
-				break;
-			}
 			duer::YTMediaManager::instance().play_data(YT_DB_WIFI_CONNECTING_TONE_LONG, sizeof(YT_DB_WIFI_CONNECTING_TONE_LONG), duer::MEDIA_FLAG_PROMPT_TONE);	
 #endif
 
@@ -694,7 +688,7 @@ static void wifi_event_callback(
 			break;
 		}
 		case APP_EVENT_DEFAULT_LOOP_TIMEOUT:
-		{
+		{			
 			wifi_event_process(handle);
 			break;
 		}

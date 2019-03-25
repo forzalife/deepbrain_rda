@@ -17,6 +17,7 @@
 static void* g_lock_mpush_service = NULL;
 static MPUSH_SERVICE_HANDLER_t *g_mpush_service_handle = NULL;
 
+
 int mpush_get_run_status(MPUSH_SERVICE_HANDLER_t *_pHandler)
 {
 	SEMPHR_TRY_LOCK(g_lock_mpush_service);
@@ -24,6 +25,11 @@ int mpush_get_run_status(MPUSH_SERVICE_HANDLER_t *_pHandler)
 	SEMPHR_TRY_UNLOCK(g_lock_mpush_service);
 	
 	return status;
+}
+
+bool mpush_is_connected()
+{
+	return (mpush_get_run_status(g_mpush_service_handle) == MPUSH_STAUTS_CONNECTED);
 }
 
 void mpush_set_run_status(MPUSH_SERVICE_HANDLER_t *_pHandler, int status)

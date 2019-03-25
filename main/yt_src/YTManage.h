@@ -66,6 +66,7 @@ public:
 	void play_local(const char* path, int flags);
 	void play_data(const char* data, size_t size, int flags);
 	void play_magic_voice(char* data, size_t size, int flags);
+	void play_shutdown(const char* data, size_t size);
 
 	void start_bt();
 	void switch_bt(void);

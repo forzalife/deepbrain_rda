@@ -53,6 +53,8 @@
 
 #define LOG_TAG "main"
 
+
+/// ¿ª·¢°å
 //SDMMCFileSystem sd(PB_9, PB_0, PB_6, PB_7, PC_0, PC_1, "sd");
 
 SDMMCFileSystem sd(GPIO_PIN9, GPIO_PIN0, GPIO_PIN3, NC, NC, NC, "sd");
@@ -137,23 +139,33 @@ int main()
     duer::MediaManager::instance().initialize();
 	duer::YTMediaManager::instance().init();
     duer::YTMediaManager::instance().set_volume(duer::DEFAULT_VOLUME);	
+	
+#if 0//chenjl add 20190317
+	if(vbat_check_startup())
+	{
+		duer::event_loop();
+	}	
+#endif
 
-	duer::YTMediaManager::instance().play_data(YT_DB_WELCOME, sizeof(YT_DB_WELCOME), duer::MEDIA_FLAG_PROMPT_TONE | duer::MEDIA_FLAG_SAVE_PREVIOUS);	
-
-	//add by lijun	20190311
+#if 1//add by lijun	20190311
 	if(deepbrain::auto_test())
 	{
 		duer::event_loop();
 	}
-	
-	//duer::event_loop();
-	
+#endif
+
+	duer::YTMediaManager::instance().play_data(YT_DB_WELCOME, sizeof(YT_DB_WELCOME), duer::MEDIA_FLAG_PROMPT_TONE | duer::MEDIA_FLAG_SAVE_PREVIOUS);	
+	while(duer::YTMediaManager::instance().is_playing())//zhutong 20190317		
+	{		
+		wait_ms(50);	
+	}
+		
 	deepbrain::yt_dcl_init();
 
 	app_main_create(TASK_PRIORITY_1);
 
 	//uart shell
-	uart_shell_create(TASK_PRIORITY_1);
+	//uart_shell_create(TASK_PRIORITY_1);
 
 	//wifi manage
 	wifi_manage_create(TASK_PRIORITY_1);

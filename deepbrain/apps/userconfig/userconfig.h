@@ -56,7 +56,7 @@
 
 //OTA升级服务器地址
 //#define OTA_UPDATE_SERVER_URL		"http://file.yuyiyun.com:2088/ota/PJ-20180830-0002-aixiaobei/version.txt"
-//#define OTA_UPDATE_SERVER_URL		"http://192.168.0.116/firmware/version.txt"
+//#define OTA_UPDATE_SERVER_URL		"http://192.168.1.153/firmware/version.txt"
 #define OTA_UPDATE_SERVER_URL		"http://file.yuyiyun.com:2088/ota/PJ-20190222-0001-zhuxiaopi/version.txt"
 
 //OTA升级服务器测试地址

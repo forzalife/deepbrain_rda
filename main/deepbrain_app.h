@@ -27,6 +27,7 @@ void yt_dcl_stop();
 
 void yt_dcl_init();
 
+void yt_key_clear();
 
 int auto_test();
 
